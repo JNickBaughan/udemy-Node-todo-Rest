@@ -28,6 +28,7 @@ app.get('/todos/:id', function(req, res){
 	
 });
 
+//POST /todos
 app.post('/todos', function(req, res){
 	var body = _.pick(req.body, 'description', 'complete');
 	
@@ -44,6 +45,21 @@ app.post('/todos', function(req, res){
 	
 	res.json(body);
 });
+
+//DELETE /todos/:id
+app.delete('/todos/:id', function(req, res){
+		var id = parseInt(req.params.id, 10);
+		var todoItem = _.findWhere(todos, { id : id});
+		if(todoItem){
+			todos = _.without(todos, todoItem);
+			res.json(todoItem);
+		}else{
+			res.status(404).send();	
+		}
+		
+	});
+
+
 
 app.get('/', function(req, res){
 	res.send('Todo API Rest End Point');
