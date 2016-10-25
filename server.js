@@ -7,16 +7,33 @@ var todos = [];
 var todoNextId = 1;
 
 app.use(parser.json());
-//GET /todos
-app.get('/todos', function(req, res){
-	res.json(todos);
-});
 
+//GET /todos ?complete=true
+app.get('/todos', function(req, res){
+	var queryParameters = req.query;
+	var filteredTodos;
+
+	//if there is no query string parameter for 'complete' return all todo items
+	if(typeof queryParameters.complete === "undefined"){
+
+		res.json(todos);
+
+	}else{//else filter by the 'complete' value
+		filteredTodos = _.filter(todos, function(todo){
+			return todo.complete.toString() === queryParameters.complete;
+		});
+
+		res.json(filteredTodos);
+	}
+
+	
+
+	
+});
 
 //GET /todos/:id
 app.get('/todos/:id', function(req, res){
 
-	
 	var id = parseInt(req.params.id, 10);
 	var todoItem = _.findWhere(todos, { id : id});
 
@@ -30,6 +47,7 @@ app.get('/todos/:id', function(req, res){
 
 //POST /todos
 app.post('/todos', function(req, res){
+
 	var body = _.pick(req.body, 'description', 'complete');
 	
 	if(!_.isBoolean(body.complete) || !_.isString(body.description) || body.description.trim().length === 0){
@@ -44,21 +62,51 @@ app.post('/todos', function(req, res){
 	todos.push(body);//pushes todo item onto list
 	
 	res.json(body);
+
+});
+
+
+//PUT /todos/:id
+app.put('/todos/:id', function(req, res){
+
+	var newTodo = _.pick(req.body, 'description', 'complete');
+	
+	if(newTodo.hasOwnProperty('complete') && !_.isBoolean(newTodo.complete)){
+		res.status(400).send("The complete field needs to be a bool");
+	}
+	
+	if(newTodo.hasOwnProperty('description') && (!_.isString(newTodo.description) || !newTodo.description.trim().length > 0)){
+		res.status(400).send("The description field needs to be a string");
+	}
+
+	var id = parseInt(req.params.id, 10);
+	var matchedTodo = _.findWhere(todos, { id : id});
+
+	if(!matchedTodo){
+		res.status(404).send("hmm? Looks like that item doesn't exist");
+	}
+
+	_.extend(matchedTodo, newTodo);
+	res.json(newTodo);
+	
+
 });
 
 //DELETE /todos/:id
 app.delete('/todos/:id', function(req, res){
-		var id = parseInt(req.params.id, 10);
-		var todoItem = _.findWhere(todos, { id : id});
-		if(todoItem){
-			todos = _.without(todos, todoItem);
-			res.json(todoItem);
-		}else{
-			res.status(404).send();	
-		}
-		
-	});
 
+	var id = parseInt(req.params.id, 10);
+	console.log(id)
+	var todoItem = _.findWhere(todos, { id : id});
+	console.dir(todoItem);
+	if(todoItem){
+		todos = _.without(todos, todoItem);
+		res.json(todoItem);
+	}else{
+		res.status(404).send("hmm? Looks like that item doesn't exist");	
+	}
+
+});
 
 
 app.get('/', function(req, res){
