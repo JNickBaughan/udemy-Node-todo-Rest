@@ -10,25 +10,26 @@ app.use(parser.json());
 
 //GET /todos ?complete=true
 app.get('/todos', function(req, res){
+
 	var queryParameters = req.query;
-	var filteredTodos;
+	var filteredTodos = todos;
 
-	//if there is no query string parameter for 'complete' return all todo items
-	if(typeof queryParameters.complete === "undefined"){
-
-		res.json(todos);
-
-	}else{//else filter by the 'complete' value
-		filteredTodos = _.filter(todos, function(todo){
+	//if user passed in a complete filter
+	if(queryParameters.hasOwnProperty("complete") ){
+		filteredTodos = _.filter(filteredTodos, function(todo){
 			return todo.complete.toString() === queryParameters.complete;
 		});
 
-		res.json(filteredTodos);
 	}
 
-	
+	//if user passed in a description
+	if(queryParameters.hasOwnProperty("description") && queryParameters.description.length > 0){
+		filteredTodos = _.filter(filteredTodos, function(todo){
+			return todo.description.toLowerCase().indexOf(queryParameters.description.toLowerCase()) > -1;
+		})
+	}
 
-	
+	res.json(filteredTodos);
 });
 
 //GET /todos/:id
