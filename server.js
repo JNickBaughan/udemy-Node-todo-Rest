@@ -38,15 +38,18 @@ app.get('/todos', function(req, res) {
 app.get('/todos/:id', function(req, res) {
 
 	var id = parseInt(req.params.id, 10);
-	var todoItem = _.findWhere(todos, {
-		id: id
-	});
 
-	if (!todoItem) {
-		res.status(404).send();
-	} else {
-		res.json(todoItem);
-	}
+	db.todo.findById(id).then( function(todoItem){
+		
+		if(!!todoItem){
+			res.json(todoItem.toJSON());
+		}else{
+			res.status(404).send();
+		}
+
+	}, function(e){
+		res.status(500).send();
+	} );
 
 });
 
@@ -56,27 +59,11 @@ app.post('/todos', function(req, res) {
 	var body = _.pick(req.body, 'description', 'complete');
 
 	db.todo.create(body).then(function(todo) {
-		console.log('loaded new record');
-		console.dir(todo);
 		res.json(todo.toJSON());
 
 	}, function(e) {
 		res.status(400).json(e);
 	});
-
-
-	/*if (!_.isBoolean(body.complete) || !_.isString(body.description) || body.description.trim().length === 0) {
-
-		return res.status(400).send();
-	}
-
-	body.description = body.description.trim();
-
-	body.id = todoNextId; //sets id
-	todoNextId++; //increments id
-	todos.push(body); //pushes todo item onto list
-
-	res.json(body);*/
 
 });
 
@@ -113,11 +100,11 @@ app.put('/todos/:id', function(req, res) {
 app.delete('/todos/:id', function(req, res) {
 
 	var id = parseInt(req.params.id, 10);
-	console.log(id)
+	
 	var todoItem = _.findWhere(todos, {
 		id: id
 	});
-	console.dir(todoItem);
+	
 	if (todoItem) {
 		todos = _.without(todos, todoItem);
 		res.json(todoItem);
@@ -131,7 +118,7 @@ app.delete('/todos/:id', function(req, res) {
 app.get('/', function(req, res) {
 	res.send('Todo API Rest End Point');
 });
-console.dir(db);
+
 
 db.sequelize.sync().then(function() {
 	app.listen(PORT, function() {
