@@ -113,17 +113,17 @@ app.put('/todos/:id', function(req, res) {
 app.delete('/todos/:id', function(req, res) {
 
 	var id = parseInt(req.params.id, 10);
-	
-	var todoItem = _.findWhere(todos, {
-		id: id
+
+	db.todo.destroy({ where:{ id: id }}).then(function(rowsDeleted){
+		if(rowsDeleted === 0){
+			res.status(404).send("hmm? Looks like that item doesn't exist");
+		}else{
+			res.status(204).send();
+		}
+
+	}, function(){
+		res.status(500).send();
 	});
-	
-	if (todoItem) {
-		todos = _.without(todos, todoItem);
-		res.json(todoItem);
-	} else {
-		res.status(404).send("hmm? Looks like that item doesn't exist");
-	}
 
 });
 
