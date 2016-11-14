@@ -12,34 +12,37 @@ app.use(parser.json());
 
 //GET /todos ?complete=true
 app.get('/todos', function(req, res) {
-
+	console.log('test');
 	var query = req.query;
 	var where = {};
 
 	//if user passed in a complete filter
 	if (query.hasOwnProperty("complete") && query.complete.toString() === 'true') {
 		where.complete = true;
-	}else if(query.hasOwnProperty("complete") && query.complete.toString() === 'false'){
+	} else if (query.hasOwnProperty("complete") && query.complete.toString() === 'false') {
 		where.complete = false;
 	}
 
-	if(query.hasOwnProperty("description") && query.description.length > 0){
+	if (query.hasOwnProperty("description") && query.description.length > 0) {
 		where.description = {
-			$like : '%' + query.description + '%'
+			$like: '%' + query.description + '%'
 		};
 	}
 
-	db.todo.findAll({ where: where }).then(function(todoItems){
-		if(!!todoItems){
+	db.todo.findAll({
+		where: where
+	}).then(function(todoItems) {
+		console.dir(todoItems);
+		if (todoItems) {
 			res.json(todoItems);
-		}else{
+		} else {
 			res.status(404).send();
 		}
-	}, function(){
+	}, function() {
 		res.status(500).send();
 	});
 
-	
+
 });
 
 //GET /todos/:id
@@ -47,15 +50,15 @@ app.get('/todos/:id', function(req, res) {
 
 	var id = parseInt(req.params.id, 10);
 
-	db.todo.findById(id).then( function(todoItem){
-		
-		if(!!todoItem){
+	db.todo.findById(id).then(function(todoItem) {
+
+		if (!!todoItem) {
 			res.json(todoItem.toJSON());
-		}else{
+		} else {
 			res.status(404).send();
 		}
 
-	}, function(e){
+	}, function(e) {
 		res.status(500).send();
 	});
 
@@ -66,7 +69,7 @@ app.post('/todos', function(req, res) {
 
 	var body = _.pick(req.body, 'description', 'complete');
 
-	if(body.description && typeof body.description === 'string'){
+	if (body.description && typeof body.description === 'string') {
 		body.description = body.description.trim();
 	}
 
@@ -84,27 +87,28 @@ app.post('/todos', function(req, res) {
 //PUT /todos/:id
 app.put('/todos/:id', function(req, res) {
 
-	var newTodo = _.pick(req.body, 'description', 'complete');
-
-	if (newTodo.hasOwnProperty('complete') && !_.isBoolean(newTodo.complete)) {
-		res.status(400).send("The complete field needs to be a bool");
-	}
-
-	if (newTodo.hasOwnProperty('description') && (!_.isString(newTodo.description) || !newTodo.description.trim().length > 0)) {
-		res.status(400).send("The description field needs to be a string");
-	}
-
 	var id = parseInt(req.params.id, 10);
-	var matchedTodo = _.findWhere(todos, {
-		id: id
-	});
+	var updatedTodo = _.pick(req.body, 'description', 'complete');
+	var validTodo = {};
 
-	if (!matchedTodo) {
-		res.status(404).send("hmm? Looks like that item doesn't exist");
+	if (updatedTodo.hasOwnProperty('complete')) {
+		validTodo.complete = updatedTodo.complete;
 	}
 
-	_.extend(matchedTodo, newTodo);
-	res.json(newTodo);
+	if (updatedTodo.hasOwnProperty('description')) {
+		validTodo.description = updatedTodo.description;
+	}
+
+	db.todo.findById(id).then(function(updatedItem) {
+			if (updatedItem) {
+				return updatedItem.update(validTodo);
+			} else {
+				res.status(404).send();
+			}
+		},
+		function() {
+			res.status(500).send();
+		});
 
 
 });
@@ -114,14 +118,18 @@ app.delete('/todos/:id', function(req, res) {
 
 	var id = parseInt(req.params.id, 10);
 
-	db.todo.destroy({ where:{ id: id }}).then(function(rowsDeleted){
-		if(rowsDeleted === 0){
+	db.todo.destroy({
+		where: {
+			id: id
+		}
+	}).then(function(rowsDeleted) {
+		if (rowsDeleted === 0) {
 			res.status(404).send("hmm? Looks like that item doesn't exist");
-		}else{
+		} else {
 			res.status(204).send();
 		}
 
-	}, function(){
+	}, function() {
 		res.status(500).send();
 	});
 
