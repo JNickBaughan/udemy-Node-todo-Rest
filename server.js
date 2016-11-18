@@ -12,7 +12,7 @@ app.use(parser.json());
 
 //GET /todos ?complete=true
 app.get('/todos', function(req, res) {
-	console.log('test');
+
 	var query = req.query;
 	var where = {};
 
@@ -32,7 +32,7 @@ app.get('/todos', function(req, res) {
 	db.todo.findAll({
 		where: where
 	}).then(function(todoItems) {
-		console.dir(todoItems);
+
 		if (todoItems) {
 			res.json(todoItems);
 		} else {
@@ -96,19 +96,22 @@ app.put('/todos/:id', function(req, res) {
 	}
 
 	if (updatedTodo.hasOwnProperty('description')) {
-		validTodo.description = updatedTodo.description;
+		validTodo.description = updatedTodo.description.trim();
 	}
 
 	db.todo.findById(id).then(function(updatedItem) {
-			if (updatedItem) {
-				return updatedItem.update(validTodo);
-			} else {
-				res.status(404).send();
-			}
-		},
-		function() {
-			res.status(500).send();
-		});
+		if (updatedItem) {
+			updatedItem.update(validTodo).then(function(todo) {
+				res.json(todo.toJSON());
+			}, function(e) {
+				res.status(400).json(e);
+			});
+		} else {
+			res.status(404).send();
+		}
+	}, function() {
+		res.status(500).send();
+	});
 
 
 });
@@ -131,6 +134,31 @@ app.delete('/todos/:id', function(req, res) {
 
 	}, function() {
 		res.status(500).send();
+	});
+
+});
+
+
+
+//POST /users
+app.post('/users', function(req, res) {
+
+	var body = _.pick(req.body, 'email', 'password');
+
+	if (body.email && typeof body.email === 'string') {
+		body.email = body.email.trim();
+	}
+
+	if (body.password && typeof body.password === 'string') {
+		body.password = body.password.trim();
+	}
+
+
+	db.user.create(body).then(function(user) {
+		res.json(user.toJSON());
+
+	}, function(e) {
+		res.status(400).json(e);
 	});
 
 });
