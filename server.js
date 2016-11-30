@@ -127,7 +127,7 @@ app.put('/todos/:id', middleware.requireAuthentication, function(req, res) {
 		where: where
 	}).then(function(todoItem) {
 		if (todoItem) {
-			console.log(todoItem);
+			
 			todoItem.update(validTodo).then(function(todo){
 				res.json(todo.toJSON());
 			}, function(e){
@@ -150,7 +150,7 @@ app.delete('/todos/:id', middleware.requireAuthentication, function(req, res) {
 	db.todo.destroy({
 		where: {
 			id: id
-			,userId : req.user.get('id');
+			,userId : req.user.get('id')
 		}
 	}).then(function(rowsDeleted) {
 		if (rowsDeleted === 0) {
@@ -192,23 +192,42 @@ app.post('/users', function(req, res) {
 
 
 //POST /users/login
-app.post('/users/login', function(req, res) {
+app.post('/users/login',  function(req, res) { 
 
 
 	var body = _.pick(req.body, 'email', 'password');
+	var userInstance;
 	
 
 	db.user.authenticate(body).then(function(user){
+		
 		var token = user.generateToken('authentication');
-		if(token){
-			res.header('Auth', token).json(user.toPublicJSON());
-		}else{
-			res.status(401).send();
-		}
+		userInstance = user;
 
-	}, function(e){
+		return db.token.create({
+			token: token
+		});
+
+	}).then(function(tokenInstance){
+		
+		res.header('Auth', tokenInstance.get('token')).json(userInstance.toPublicJSON());
+	}).catch(function(e){
+		
 		res.status(401).send();
 	});
+
+});//END of POST /users/login 
+
+
+//POST /users/logout
+app.delete('/users/logout', middleware.requireAuthentication, function(req, res) {
+
+	req.token.destroy().then(function(){
+		res.status(204).send();
+	}).catch(function(){
+		res.status(500).send();
+	});
+	
 
 });
 
@@ -219,7 +238,7 @@ app.get('/', function(req, res) {
 });
 
 
-db.sequelize.sync({force:false}).then(function() {
+db.sequelize.sync({force:true}).then(function() {
 	app.listen(PORT, function() {
 		console.log('Listening on port ' + PORT);
 	});
